@@ -2,7 +2,7 @@ import pytest
 
 from multiversx_sdk.core.errors import BadUsageError
 from multiversx_sdk.core.tokens import (Token, TokenComputer,
-                                        TokenIdentifierParts)
+                                        TokenIdentifierParts, TokenTransfer)
 
 
 class TestTokenComputer:
@@ -86,3 +86,11 @@ class TestTokenComputer:
 
         assert fungible_identifier == "FNG-123456"
         assert nft_identifier == "NFT-987654-0a"
+
+
+def test_token_transfer_from_native_amount():
+    transfer = TokenTransfer.new_from_native_amount(1000000000000000000)
+
+    assert transfer.token.identifier == "EGLD-000000"
+    assert transfer.token.nonce == 0
+    assert transfer.amount == 1000000000000000000

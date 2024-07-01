@@ -2,7 +2,8 @@ from typing import List
 
 from multiversx_sdk.core.codec import (decode_unsigned_number,
                                        encode_unsigned_number)
-from multiversx_sdk.core.constants import TOKEN_RANDOM_SEQUENCE_LENGTH
+from multiversx_sdk.core.constants import (
+    EGLD_IDENTIFIER_FOR_MULTI_ESDTNFT_TRANSFER, TOKEN_RANDOM_SEQUENCE_LENGTH)
 from multiversx_sdk.core.errors import (BadUsageError,
                                         InvalidTokenIdentifierError)
 from multiversx_sdk.core.interfaces import IToken, ITokenIdentifierParts
@@ -19,6 +20,11 @@ class TokenTransfer:
         """`amount` should always be in atomic units: 1.000000 "USDC-c76f1f" = "1000000"""
         self.token = token
         self.amount = amount
+
+    @staticmethod
+    def new_from_native_amount(amount: int) -> "TokenTransfer":
+        native_token = Token(EGLD_IDENTIFIER_FOR_MULTI_ESDTNFT_TRANSFER)
+        return TokenTransfer(native_token, amount)
 
 
 class TokenIdentifierParts:

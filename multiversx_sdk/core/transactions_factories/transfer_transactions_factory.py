@@ -2,7 +2,7 @@ from typing import List, Optional, Protocol, Sequence
 
 from multiversx_sdk.core.errors import BadUsageError
 from multiversx_sdk.core.interfaces import IAddress, ITokenTransfer
-from multiversx_sdk.core.tokens import TokenComputer
+from multiversx_sdk.core.tokens import TokenComputer, TokenTransfer
 from multiversx_sdk.core.transaction import Transaction
 from multiversx_sdk.core.transactions_factories.token_transfers_data_builder import \
     TokenTransfersDataBuilder
@@ -76,3 +76,34 @@ class TransferTransactionsFactory:
             gas_limit=extra_gas_for_transfer,
             add_data_movement_gas=True
         ).build()
+
+    def create_transaction_for_transfer(self,
+                                        sender: IAddress,
+                                        receiver: IAddress,
+                                        native_amount: Optional[int] = None,
+                                        token_transfers: Optional[Sequence[ITokenTransfer]] = None,
+                                        data: Optional[bytes] = None) -> Transaction:
+        if not native_amount and not token_transfers:
+            raise BadUsageError("No native token amount or token transfers provided")
+
+        if token_transfers and data:
+            raise BadUsageError("Can't set data field when sending esdt tokens")
+
+        if native_amount and not token_transfers:
+            return self.create_transaction_for_native_token_transfer(
+                sender=sender,
+                receiver=receiver,
+                native_amount=native_amount,
+                data=data.decode() if data else None
+            )
+
+        token_transfers = list(token_transfers) if token_transfers else []
+
+        native_transfer = TokenTransfer.new_from_native_amount(native_amount) if native_amount else None
+        token_transfers.append(native_transfer) if native_transfer else None
+
+        return self.create_transaction_for_esdt_token_transfer(
+            sender=sender,
+            receiver=receiver,
+            token_transfers=token_transfers
+        )

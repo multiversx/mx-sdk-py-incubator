@@ -8,10 +8,9 @@ from multiversx_sdk.core.code_metadata import CodeMetadata
 from multiversx_sdk.core.constants import (ARGS_SEPARATOR,
                                            CONTRACT_DEPLOY_ADDRESS,
                                            VM_TYPE_WASM_VM)
-from multiversx_sdk.core.errors import BadUsageError
 from multiversx_sdk.core.interfaces import IAddress, ITokenTransfer
 from multiversx_sdk.core.serializer import arg_to_string, args_to_buffers
-from multiversx_sdk.core.tokens import TokenComputer
+from multiversx_sdk.core.tokens import TokenComputer, TokenTransfer
 from multiversx_sdk.core.transaction import Transaction
 from multiversx_sdk.core.transactions_factories.token_transfers_data_builder import \
     TokenTransfersDataBuilder
@@ -88,16 +87,21 @@ class SmartContractTransactionsFactory:
                                        arguments: Sequence[Any] = [],
                                        native_transfer_amount: int = 0,
                                        token_transfers: Sequence[ITokenTransfer] = []) -> Transaction:
-        number_of_tokens = len(token_transfers)
+        transfers = list(token_transfers)
+        number_of_tokens = len(transfers)
         receiver = contract
 
         if native_transfer_amount and number_of_tokens:
-            raise BadUsageError("Can't send both native token and custom tokens(ESDT/NFT)")
+            native_tranfer = TokenTransfer.new_from_native_amount(native_transfer_amount)
+            transfers.append(native_tranfer)
+
+            native_transfer_amount = 0
+            number_of_tokens += 1
 
         data_parts: List[str] = []
 
-        if len(token_transfers) == 1:
-            transfer = token_transfers[0]
+        if number_of_tokens == 1:
+            transfer = transfers[0]
 
             if self.token_computer.is_fungible(transfer.token):
                 data_parts = self._data_args_builder.build_args_for_esdt_transfer(transfer=transfer)
@@ -105,9 +109,9 @@ class SmartContractTransactionsFactory:
                 data_parts = self._data_args_builder.build_args_for_single_esdt_nft_transfer(
                     transfer=transfer, receiver=receiver)
                 receiver = sender
-        elif len(token_transfers) > 1:
+        elif number_of_tokens > 1:
             data_parts = self._data_args_builder.build_args_for_multi_esdt_nft_transfer(
-                receiver=receiver, transfers=token_transfers)
+                receiver=receiver, transfers=transfers)
             receiver = sender
 
         prepared_arguments = self._encode_execute_arguments(function, list(arguments))

@@ -245,6 +245,35 @@ class TestSmartContractTransactionsFactory:
         assert transaction.data.decode() == "MultiESDTNFTTransfer@00000000000000000500b9353fe8407f87310c87e12fa1ac807f0485da39d152@02@4e46542d313233343536@01@01@4e46542d313233343536@2a@01@64756d6d79@07"
         assert transaction.value == 0
 
+    def test_create_transaction_for_execute_and_send_native_and_nfts(self):
+        sender = Address.new_from_bech32("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
+        contract = Address.new_from_bech32("erd1qqqqqqqqqqqqqpgqhy6nl6zq07rnzry8uyh6rtyq0uzgtk3e69fqgtz9l4")
+        function = "dummy"
+        gas_limit = 6000000
+        args = [7]
+
+        first_token = Token("NFT-123456", 1)
+        first_transfer = TokenTransfer(first_token, 1)
+        second_token = Token("NFT-123456", 42)
+        second_transfer = TokenTransfer(second_token, 1)
+
+        transaction = self.factory.create_transaction_for_execute(
+            sender=sender,
+            contract=contract,
+            function=function,
+            gas_limit=gas_limit,
+            arguments=args,
+            native_transfer_amount=1000000000000000000,
+            token_transfers=[first_transfer, second_transfer]
+        )
+
+        assert transaction.sender == "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
+        assert transaction.receiver == "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
+        assert transaction.gas_limit == gas_limit
+        assert transaction.data
+        assert transaction.data.decode() == "MultiESDTNFTTransfer@00000000000000000500b9353fe8407f87310c87e12fa1ac807f0485da39d152@03@4e46542d313233343536@01@01@4e46542d313233343536@2a@01@45474c442d303030303030@@0de0b6b3a7640000@64756d6d79@07"
+        assert transaction.value == 0
+
     def test_create_transaction_for_upgrade(self):
         sender = Address.new_from_bech32("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
         contract_address = Address.new_from_bech32("erd1qqqqqqqqqqqqqpgqhy6nl6zq07rnzry8uyh6rtyq0uzgtk3e69fqgtz9l4")
